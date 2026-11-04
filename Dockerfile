@@ -1,27 +1,15 @@
-# Use the official Eclipse Mosquitto image
+# IXON SecureEdge Pro - Mosquitto MQTT Broker
+# Benutzeranmeldung beim Containerstart
+
 FROM eclipse-mosquitto:2.0
 
-# Create directory for certificates
-RUN mkdir -p /mosquitto/config/certs
-
-# Copy Mosquitto configuration file
+# Broker-Konfiguration uebernehmen
 COPY mosquitto.conf /mosquitto/config/mosquitto.conf
 
-# Copy TLS certificates
-COPY mosquitto_certs/ca.crt /mosquitto/config/certs/ca.crt
-COPY mosquitto_certs/server.crt /mosquitto/config/certs/server.crt
-COPY mosquitto_certs/server.key /mosquitto/config/certs/server.key
-
-# Expose the default MQTT port (1883) and WebSocket port (9001)
+# MQTT-Port
 EXPOSE 1883
-EXPOSE 9001
-# Expose MQTT over TLS port
-EXPOSE 8883
 
-# Set permissions for certificates
-RUN chmod 644 /mosquitto/config/certs/ca.crt \
-    && chmod 644 /mosquitto/config/certs/server.crt \
-    && chmod 600 /mosquitto/config/certs/server.key
+# Benutzerdatei beim Start erzeugen
+# Zugangsdaten kommen aus Container-Umgebungsvariablen
+CMD ["sh", "-ec", "test -n \"$MQTT_USERNAME\" && test -n \"$MQTT_PASSWORD\" || { echo 'MQTT-Zugangsdaten fehlen'; exit 1; }; mosquitto_passwd -b -c /mosquitto/config/passwordfile \"$MQTT_USERNAME\" \"$MQTT_PASSWORD\"; unset MQTT_PASSWORD; exec mosquitto -c /mosquitto/config/mosquitto.conf"]
 
-# Run Mosquitto broker
-CMD ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
